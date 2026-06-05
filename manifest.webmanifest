@@ -1,7 +1,7 @@
 {
-  "name": "Controle de Figurinhas Copa 2026",
+  "name": "Controle de Figurinhas Copa 2026 Cloud",
   "short_name": "Figurinhas 2026",
-  "description": "Controle de figurinhas com contador de faltantes.",
+  "description": "Controle de figurinhas com login e sincronização em nuvem.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f4f7f2",

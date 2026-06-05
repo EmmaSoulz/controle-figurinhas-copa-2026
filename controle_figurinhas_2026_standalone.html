@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0f6b3d">
   <title>Controle de Figurinhas Copa 2026</title>
-  
-  
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --green:#0f6b3d; --green2:#17a362; --soft:#eaf6ee; --bg:#f4f7f2; --ink:#102018;
@@ -50,9 +51,24 @@
     .modal h2 { margin:0 0 8px; }
     .modal textarea { width:100%; min-height:150px; border:1px solid var(--line); border-radius:12px; padding:10px; }
     .modalBtns { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+
+    .authBox { background:white; border:1px solid var(--line); border-radius:18px; padding:12px; margin:12px 0; box-shadow:0 2px 10px rgba(0,0,0,.04); }
+    .authTop { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+    .authTop strong { font-size:16px; }
+    .syncBadge { display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:6px 10px; font-size:12px; font-weight:800; background:var(--soft); color:var(--green); }
+    .syncBadge.warn { background:#fff7dc; color:#9a5b00; }
+    .syncBadge.err { background:#fee2e2; color:#991b1b; }
+    .authGrid { display:grid; grid-template-columns:1fr 1fr 110px 130px; gap:8px; }
+    .authInput { width:100%; border:1px solid var(--line); border-radius:12px; padding:12px; background:white; outline:none; }
+    .userBox { display:grid; grid-template-columns:1fr 120px 90px; gap:8px; align-items:center; }
+    .userName { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px; color:#365246; }
+    .hint { margin:8px 0 0; color:#5b6d64; font-size:12px; line-height:1.35; }
+    .configWarn { background:#fff7dc; border:1px solid #f1d68a; border-radius:12px; padding:10px; margin-top:10px; color:#6b4a00; font-size:13px; }
     @media (max-width:640px) {
       .toolbar { grid-template-columns:1fr; }
       .actions { grid-template-columns:1fr; }
+      .authGrid { grid-template-columns:1fr; }
+      .userBox { grid-template-columns:1fr; }
       .kpis { grid-template-columns:repeat(2,1fr); }
       .title { font-size:18px; }
       .stickers { grid-template-columns:repeat(auto-fill, minmax(62px,1fr)); }
@@ -61,7 +77,7 @@
 </head>
 <body>
   <header>
-    <div class="title"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSI5NiIgZmlsbD0iIzBmNmIzZCIvPgo8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE2MCIgZmlsbD0iI2ZmZmZmZiIvPgo8cGF0aCBkPSJNMjU2IDEwNCBMMzAzIDIwNyBMNDE2IDIyMCBMMzMzIDI5NCBMMzU2IDQwNiBMMjU2IDM1MCBMMTU2IDQwNiBMMTc5IDI5NCBMOTYgMjIwIEwyMDkgMjA3IFoiIGZpbGw9IiNmNWI4MmUiLz4KPHRleHQgeD0iMjU2IiB5PSI0NzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiIgZm9udC13ZWlnaHQ9IjcwMCI+MjAyNjwvdGV4dD4KPC9zdmc+" alt=""><div>Controle de Figurinhas<br>Copa 2026</div></div>
+    <div class="title"><img src="icon.svg" alt=""><div>Controle de Figurinhas<br>Copa 2026</div></div>
     <div class="kpis">
       <div class="kpi"><b id="total">0</b><span>Total</span></div>
       <div class="kpi"><b id="have">0</b><span>Tenho</span></div>
@@ -72,6 +88,25 @@
   </header>
 
   <main>
+    <section class="authBox" id="authBox">
+      <div class="authTop">
+        <strong>Conta compartilhada</strong>
+        <span class="syncBadge warn" id="syncStatus">Modo local</span>
+      </div>
+      <div id="loginForm" class="authGrid">
+        <input id="email" class="authInput" type="email" autocomplete="username" placeholder="E-mail/usuário">
+        <input id="password" class="authInput" type="password" autocomplete="current-password" placeholder="Senha">
+        <button class="primary" id="loginBtn" type="button">Entrar</button>
+        <button class="secondary" id="signupBtn" type="button">Criar usuário</button>
+      </div>
+      <div id="userBox" class="userBox" hidden>
+        <div class="userName">Logado como: <b id="currentUser">-</b></div>
+        <button class="secondary" id="syncNowBtn" type="button">Sincronizar</button>
+        <button class="secondary" id="logoutBtn" type="button">Sair</button>
+      </div>
+      <p class="hint">Use uma conta própria da coleção. Quem entrar com o mesmo usuário e senha verá o mesmo progresso e também poderá alterar as marcações.</p>
+      <div class="configWarn" id="configWarn" hidden>Para ativar o login, configure o Supabase no arquivo <b>index.html</b>, preenchendo <b>SUPABASE_URL</b> e <b>SUPABASE_ANON_KEY</b>.</div>
+    </section>
     <div class="toolbar">
       <input id="q" class="search" placeholder="Pesquisar país ou código, ex.: Brasil, BRA10...">
       <select id="groupFilter"><option value="">Todos grupos</option></select>
@@ -1402,15 +1437,173 @@
   }
 ];
 
+    /* ==========================================================
+       CONFIGURAÇÃO DO LOGIN / BANCO DE DADOS
+       1) Crie um projeto grátis no Supabase.
+       2) Rode o arquivo supabase_schema.sql no SQL Editor.
+       3) Cole abaixo a URL e a chave anon public do seu projeto.
+       ========================================================== */
+    const SUPABASE_URL = "COLE_AQUI_SUA_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = "COLE_AQUI_SUA_SUPABASE_ANON_KEY";
+
     const STORAGE_KEY = 'controle-figurinhas-copa-2026-v1';
+    const STORAGE_UPDATED_KEY = 'controle-figurinhas-copa-2026-updated-at';
     const codes = FIGURINHAS.flatMap(t => t.codes);
-    let owned = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
+    let owned = new Set(loadLocal());
     let deferredPrompt = null;
+    let currentUser = null;
+    let saveTimer = null;
+    let cloudReady = false;
+    let supabaseClient = null;
 
     const el = id => document.getElementById(id);
     const app = el('app');
 
-    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify([...owned].sort())); }
+    function isSupabaseConfigured() {
+      return SUPABASE_URL && SUPABASE_ANON_KEY &&
+        !SUPABASE_URL.includes('COLE_AQUI') && !SUPABASE_ANON_KEY.includes('COLE_AQUI');
+    }
+
+    if (isSupabaseConfigured() && window.supabase) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      cloudReady = true;
+    }
+
+    function loadLocal() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        return Array.isArray(raw) ? raw.filter(c => codes.includes(c)) : [];
+      } catch(e) { return []; }
+    }
+
+    function saveLocal() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify([...owned].sort()));
+      localStorage.setItem(STORAGE_UPDATED_KEY, new Date().toISOString());
+    }
+
+    function setSyncStatus(text, type='ok') {
+      const b = el('syncStatus');
+      b.textContent = text;
+      b.className = 'syncBadge' + (type === 'warn' ? ' warn' : '') + (type === 'err' ? ' err' : '');
+    }
+
+    function updateAuthUi() {
+      el('configWarn').hidden = cloudReady;
+      el('loginForm').hidden = !!currentUser || !cloudReady;
+      el('userBox').hidden = !currentUser;
+      if (!cloudReady) setSyncStatus('Login não configurado', 'warn');
+      if (currentUser) el('currentUser').textContent = currentUser.email || currentUser.id;
+    }
+
+    async function saveCloudNow() {
+      if (!cloudReady || !currentUser) { saveLocal(); setSyncStatus('Salvo neste celular', 'warn'); return; }
+      const payload = {
+        user_id: currentUser.id,
+        owned: [...owned].sort(),
+        updated_at: new Date().toISOString()
+      };
+      setSyncStatus('Salvando...', 'warn');
+      const { error } = await supabaseClient
+        .from('sticker_progress')
+        .upsert(payload, { onConflict: 'user_id' });
+      if (error) {
+        console.error(error);
+        setSyncStatus('Erro ao salvar na nuvem', 'err');
+        return;
+      }
+      setSyncStatus('Salvo na nuvem');
+    }
+
+    function save() {
+      saveLocal();
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveCloudNow, 450);
+    }
+
+    async function loadCloudProgress() {
+      if (!cloudReady || !currentUser) return;
+      setSyncStatus('Carregando nuvem...', 'warn');
+      const { data, error } = await supabaseClient
+        .from('sticker_progress')
+        .select('owned, updated_at')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error(error);
+        setSyncStatus('Erro ao carregar nuvem', 'err');
+        return;
+      }
+
+      const localOwned = loadLocal();
+      if (data && Array.isArray(data.owned)) {
+        owned = new Set(data.owned.filter(c => codes.includes(c)));
+        saveLocal();
+        setSyncStatus('Progresso carregado');
+      } else if (localOwned.length) {
+        owned = new Set(localOwned.filter(c => codes.includes(c)));
+        await saveCloudNow();
+      } else {
+        owned = new Set();
+        saveLocal();
+        await saveCloudNow();
+      }
+      render();
+    }
+
+    async function login() {
+      if (!cloudReady) return alert('Configure o Supabase antes de usar login. Veja o arquivo INSTRUCOES_SUPABASE.txt.');
+      const email = el('email').value.trim();
+      const password = el('password').value;
+      if (!email || !password) return alert('Preencha e-mail/usuário e senha.');
+      setSyncStatus('Entrando...', 'warn');
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) { setSyncStatus('Erro no login', 'err'); return alert('Não consegui entrar: ' + error.message); }
+      currentUser = data.user;
+      updateAuthUi();
+      await loadCloudProgress();
+    }
+
+    async function signup() {
+      if (!cloudReady) return alert('Configure o Supabase antes de criar usuário. Veja o arquivo INSTRUCOES_SUPABASE.txt.');
+      const email = el('email').value.trim();
+      const password = el('password').value;
+      if (!email || !password) return alert('Preencha e-mail/usuário e senha.');
+      if (password.length < 6) return alert('Use uma senha com pelo menos 6 caracteres.');
+      setSyncStatus('Criando usuário...', 'warn');
+      const { data, error } = await supabaseClient.auth.signUp({ email, password });
+      if (error) { setSyncStatus('Erro ao criar', 'err'); return alert('Não consegui criar usuário: ' + error.message); }
+      if (data.session && data.user) {
+        currentUser = data.user;
+        updateAuthUi();
+        await loadCloudProgress();
+        alert('Usuário criado e conectado.');
+      } else {
+        setSyncStatus('Confirme o e-mail', 'warn');
+        alert('Usuário criado. Se a confirmação de e-mail estiver ativa no Supabase, confirme o e-mail antes de entrar.');
+      }
+    }
+
+    async function logout() {
+      if (cloudReady) await supabaseClient.auth.signOut();
+      currentUser = null;
+      updateAuthUi();
+      setSyncStatus('Modo local', 'warn');
+    }
+
+    async function restoreSession() {
+      updateAuthUi();
+      if (!cloudReady) return;
+      const { data } = await supabaseClient.auth.getSession();
+      if (data && data.session && data.session.user) {
+        currentUser = data.session.user;
+        updateAuthUi();
+        await loadCloudProgress();
+      } else {
+        setSyncStatus('Entre para sincronizar', 'warn');
+      }
+    }
+
     function updateCounters() {
       const total = codes.length;
       const have = owned.size;
@@ -1498,6 +1691,11 @@
       } catch(e) { alert('Não consegui importar. Verifique se o texto do backup está correto.'); }
     };
 
+    el('loginBtn').onclick = login;
+    el('signupBtn').onclick = signup;
+    el('logoutBtn').onclick = logout;
+    el('syncNowBtn').onclick = async () => { await loadCloudProgress(); await saveCloudNow(); };
+
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault(); deferredPrompt = e; el('installBtn').hidden = false;
     });
@@ -1505,8 +1703,8 @@
       if (!deferredPrompt) return alert('No Android/Chrome, toque no menu ⋮ e escolha “Adicionar à tela inicial”.');
       deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; el('installBtn').hidden = true;
     };
-    
-    setupFilters(); render();
+    if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{})); }
+    setupFilters(); render(); restoreSession();
   </script>
 </body>
 </html>

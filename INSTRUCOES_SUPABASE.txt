@@ -1,0 +1,44 @@
+COMO ATIVAR LOGIN E PROGRESSO COMPARTILHADO
+
+O GitHub Pages publica apenas HTML, CSS e JavaScript. Para login e progresso compartilhado entre celulares, você precisa de um banco de dados na nuvem. Esta versão está pronta para usar com Supabase.
+
+1) Crie uma conta em https://supabase.com
+2) Crie um novo projeto.
+3) No Supabase, entre em SQL Editor > New query.
+4) Cole e execute o conteúdo do arquivo supabase_schema.sql.
+5) Vá em Project Settings > API.
+6) Copie:
+   - Project URL
+   - anon public key
+7) Abra o arquivo index.html.
+8) Procure este trecho:
+
+const SUPABASE_URL = "COLE_AQUI_SUA_SUPABASE_URL";
+const SUPABASE_ANON_KEY = "COLE_AQUI_SUA_SUPABASE_ANON_KEY";
+
+9) Substitua pelos dados do seu projeto Supabase, por exemplo:
+
+const SUPABASE_URL = "https://xxxxx.supabase.co";
+const SUPABASE_ANON_KEY = "sua-chave-anon-public";
+
+10) Salve o index.html e envie novamente para o GitHub.
+
+COMO USAR
+
+- Abra o app publicado.
+- Clique em Criar usuário.
+- Use um e-mail e senha da coleção, por exemplo: colecaofigurinhas@seudominio.com.
+- Se quiser que outra pessoa veja o mesmo progresso, ela deve entrar com o mesmo usuário e senha.
+- Quem entrar com esse usuário e senha também poderá alterar as figurinhas.
+
+IMPORTANTE SOBRE NÃO PERDER O HISTÓRICO
+
+- O progresso fica salvo na nuvem na tabela sticker_progress.
+- Atualizar os arquivos do GitHub não apaga o progresso.
+- O app também salva uma cópia local no celular como backup.
+- Para maior segurança, use o botão Exportar backup antes de grandes alterações.
+
+DICA DE CONFIGURAÇÃO
+
+Se o Supabase pedir confirmação por e-mail e você não quiser isso:
+Authentication > Providers > Email > desative Confirm email.
