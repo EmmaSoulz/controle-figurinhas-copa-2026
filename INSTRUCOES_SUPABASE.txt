@@ -42,3 +42,12 @@ DICA DE CONFIGURAÇÃO
 
 Se o Supabase pedir confirmação por e-mail e você não quiser isso:
 Authentication > Providers > Email > desative Confirm email.
+
+
+CORREÇÃO IMPORTANTE DE LOGIN
+- Em SUPABASE_URL, use somente a URL base do projeto, exemplo:
+  https://xxxxxxxxxxxx.supabase.co
+- Não use a URL terminando com /rest/v1 ou /auth/v1.
+- Esta versão também tenta corrigir automaticamente se /rest/v1 for colado por engano.
+- O campo de login aceita um usuário simples, como Emma. Internamente ele vira um e-mail técnico para o Supabase.
+- Depois de publicar no GitHub Pages, abra o app em aba anônima ou limpe o cache se continuar vendo a versão antiga.

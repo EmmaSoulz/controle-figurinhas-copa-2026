@@ -1459,14 +1459,46 @@
     const el = id => document.getElementById(id);
     const app = el('app');
 
+    function cleanSupabaseUrl(url) {
+      // O SDK do Supabase precisa da URL base do projeto.
+      // Esta função corrige automaticamente quando alguém cola a URL da Data API com /rest/v1.
+      return String(url || '')
+        .trim()
+        .replace(/\/+$/, '')
+        .replace(/\/rest\/v1$/i, '')
+        .replace(/\/auth\/v1$/i, '');
+    }
+
+    function normalizeLogin(value) {
+      // O Supabase Auth trabalha com e-mail/senha.
+      // Para permitir usuário simples, como "Emma", o app transforma internamente em e-mail técnico.
+      const raw = String(value || '').trim().toLowerCase();
+      if (raw.includes('@')) return raw;
+      const slug = raw
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9._-]/g, '')
+        .replace(/^[._-]+|[._-]+$/g, '');
+      return `${slug || 'usuario'}@figurinhas.app`;
+    }
+
+    function showLoginLabel() {
+      const raw = String(el('email').value || '').trim();
+      if (!raw) return '-';
+      return raw.includes('@') ? raw : raw;
+    }
+
     function isSupabaseConfigured() {
       return SUPABASE_URL && SUPABASE_ANON_KEY &&
         !SUPABASE_URL.includes('COLE_AQUI') && !SUPABASE_ANON_KEY.includes('COLE_AQUI');
     }
 
     if (isSupabaseConfigured() && window.supabase) {
-      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const safeUrl = cleanSupabaseUrl(SUPABASE_URL);
+      supabaseClient = window.supabase.createClient(safeUrl, String(SUPABASE_ANON_KEY || '').trim());
       cloudReady = true;
+      if (safeUrl !== String(SUPABASE_URL).trim()) {
+        console.warn('SUPABASE_URL corrigida automaticamente. Use apenas a URL base do projeto:', safeUrl);
+      }
     }
 
     function loadLocal() {
@@ -1492,7 +1524,10 @@
       el('loginForm').hidden = !!currentUser || !cloudReady;
       el('userBox').hidden = !currentUser;
       if (!cloudReady) setSyncStatus('Login não configurado', 'warn');
-      if (currentUser) el('currentUser').textContent = currentUser.email || currentUser.id;
+      if (currentUser) {
+        const display = (currentUser.email || currentUser.id || '').replace('@figurinhas.app', '');
+        el('currentUser').textContent = display;
+      }
     }
 
     async function saveCloudNow() {
@@ -1553,9 +1588,10 @@
 
     async function login() {
       if (!cloudReady) return alert('Configure o Supabase antes de usar login. Veja o arquivo INSTRUCOES_SUPABASE.txt.');
-      const email = el('email').value.trim();
+      const rawLogin = el('email').value.trim();
+      const email = normalizeLogin(rawLogin);
       const password = el('password').value;
-      if (!email || !password) return alert('Preencha e-mail/usuário e senha.');
+      if (!rawLogin || !password) return alert('Preencha usuário/e-mail e senha.');
       setSyncStatus('Entrando...', 'warn');
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) { setSyncStatus('Erro no login', 'err'); return alert('Não consegui entrar: ' + error.message); }
@@ -1566,9 +1602,10 @@
 
     async function signup() {
       if (!cloudReady) return alert('Configure o Supabase antes de criar usuário. Veja o arquivo INSTRUCOES_SUPABASE.txt.');
-      const email = el('email').value.trim();
+      const rawLogin = el('email').value.trim();
+      const email = normalizeLogin(rawLogin);
       const password = el('password').value;
-      if (!email || !password) return alert('Preencha e-mail/usuário e senha.');
+      if (!rawLogin || !password) return alert('Preencha usuário/e-mail e senha.');
       if (password.length < 6) return alert('Use uma senha com pelo menos 6 caracteres.');
       setSyncStatus('Criando usuário...', 'warn');
       const { data, error } = await supabaseClient.auth.signUp({ email, password });
