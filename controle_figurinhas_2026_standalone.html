@@ -1,0 +1,1512 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f6b3d">
+  <title>Controle de Figurinhas Copa 2026</title>
+  
+  
+  <style>
+    :root {
+      --green:#0f6b3d; --green2:#17a362; --soft:#eaf6ee; --bg:#f4f7f2; --ink:#102018;
+      --line:#d7e3dc; --danger:#b91c1c; --warning:#fff7dc;
+    }
+    * { box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin:0; background:var(--bg); color:var(--ink); font-family: Arial, Helvetica, sans-serif; }
+    header { position:sticky; top:0; z-index:10; background:linear-gradient(135deg,var(--green),#083820); color:white; padding:14px 14px 12px; box-shadow:0 4px 18px rgba(0,0,0,.18); }
+    .title { display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px; line-height:1.15; }
+    .title img { width:38px; height:38px; border-radius:10px; }
+    .kpis { display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin-top:12px; }
+    .kpi { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.20); border-radius:14px; padding:9px 6px; text-align:center; }
+    .kpi b { display:block; font-size:17px; }
+    .kpi span { font-size:11px; opacity:.9; }
+    .progressWrap { height:8px; background:rgba(255,255,255,.20); border-radius:999px; overflow:hidden; margin-top:10px; }
+    .progress { height:100%; width:0%; background:#f5b82e; border-radius:999px; transition:width .2s; }
+    main { padding:12px 12px 90px; max-width:980px; margin:0 auto; }
+    .toolbar { display:grid; grid-template-columns:1fr 110px 110px; gap:8px; margin:12px 0; }
+    input, select, button { font:inherit; }
+    .search, select { width:100%; border:1px solid var(--line); border-radius:12px; padding:12px; background:white; outline:none; }
+    .actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:10px 0 12px; }
+    .act { border:0; border-radius:12px; padding:11px 8px; background:white; box-shadow:0 1px 5px rgba(0,0,0,.08); font-weight:700; color:var(--green); }
+    .act.danger { color:var(--danger); }
+    .team { background:white; border:1px solid var(--line); border-radius:18px; padding:12px; margin:12px 0; box-shadow:0 2px 10px rgba(0,0,0,.04); }
+    .teamHead { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px; }
+    .teamName { font-weight:800; font-size:18px; }
+    .group { display:inline-flex; align-items:center; justify-content:center; min-width:30px; height:30px; padding:0 8px; border-radius:999px; background:var(--soft); color:var(--green); font-weight:800; margin-right:8px; }
+    .teamStats { font-size:12px; color:#4b6356; text-align:right; white-space:nowrap; }
+    .stickers { display:grid; grid-template-columns:repeat(auto-fill, minmax(72px,1fr)); gap:8px; }
+    .sticker { min-height:44px; border:1px solid var(--line); border-radius:12px; background:#fff; color:#1f2937; font-weight:800; letter-spacing:.2px; box-shadow:0 1px 3px rgba(0,0,0,.05); transition:.12s transform, .12s background, .12s color, .12s border; }
+    .sticker:active { transform:scale(.96); }
+    .sticker.have { background:#1fbf70; color:#fff; border-color:#119354; }
+    .sticker.missing { background:#fff; }
+    .empty { padding:22px; text-align:center; color:#647067; }
+    .footerBar { position:fixed; left:0; right:0; bottom:0; background:white; border-top:1px solid var(--line); padding:9px 12px calc(9px + env(safe-area-inset-bottom)); z-index:20; box-shadow:0 -5px 18px rgba(0,0,0,.08); }
+    .footerInner { max-width:980px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .primary { border:0; background:var(--green); color:white; border-radius:14px; padding:13px 10px; font-weight:800; }
+    .secondary { border:1px solid var(--line); background:#fff; color:var(--green); border-radius:14px; padding:13px 10px; font-weight:800; }
+    dialog { border:0; border-radius:20px; max-width:560px; width:calc(100% - 24px); padding:0; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+    .modal { padding:18px; }
+    .modal h2 { margin:0 0 8px; }
+    .modal textarea { width:100%; min-height:150px; border:1px solid var(--line); border-radius:12px; padding:10px; }
+    .modalBtns { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+    @media (max-width:640px) {
+      .toolbar { grid-template-columns:1fr; }
+      .actions { grid-template-columns:1fr; }
+      .kpis { grid-template-columns:repeat(2,1fr); }
+      .title { font-size:18px; }
+      .stickers { grid-template-columns:repeat(auto-fill, minmax(62px,1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="title"><img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj4KPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSI5NiIgZmlsbD0iIzBmNmIzZCIvPgo8Y2lyY2xlIGN4PSIyNTYiIGN5PSIyNTYiIHI9IjE2MCIgZmlsbD0iI2ZmZmZmZiIvPgo8cGF0aCBkPSJNMjU2IDEwNCBMMzAzIDIwNyBMNDE2IDIyMCBMMzMzIDI5NCBMMzU2IDQwNiBMMjU2IDM1MCBMMTU2IDQwNiBMMTc5IDI5NCBMOTYgMjIwIEwyMDkgMjA3IFoiIGZpbGw9IiNmNWI4MmUiLz4KPHRleHQgeD0iMjU2IiB5PSI0NzUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSI1NCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2ZmZiIgZm9udC13ZWlnaHQ9IjcwMCI+MjAyNjwvdGV4dD4KPC9zdmc+" alt=""><div>Controle de Figurinhas<br>Copa 2026</div></div>
+    <div class="kpis">
+      <div class="kpi"><b id="total">0</b><span>Total</span></div>
+      <div class="kpi"><b id="have">0</b><span>Tenho</span></div>
+      <div class="kpi"><b id="missing">0</b><span>Faltam</span></div>
+      <div class="kpi"><b id="pct">0%</b><span>Progresso</span></div>
+    </div>
+    <div class="progressWrap"><div class="progress" id="progress"></div></div>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <input id="q" class="search" placeholder="Pesquisar país ou código, ex.: Brasil, BRA10...">
+      <select id="groupFilter"><option value="">Todos grupos</option></select>
+      <select id="statusFilter"><option value="">Todos</option><option value="have">Tenho</option><option value="missing">Faltam</option></select>
+    </div>
+    <div class="actions">
+      <button class="act" id="showMissing">Ver só faltantes</button>
+      <button class="act" id="exportBtn">Exportar backup</button>
+      <button class="act danger" id="resetBtn">Limpar marcações</button>
+    </div>
+    <section id="app"></section>
+  </main>
+
+  <div class="footerBar">
+    <div class="footerInner">
+      <button class="primary" id="installBtn" hidden>Instalar no celular</button>
+      <button class="secondary" id="importBtn">Importar backup</button>
+    </div>
+  </div>
+
+  <dialog id="backupDialog">
+    <div class="modal">
+      <h2 id="backupTitle">Backup</h2>
+      <p id="backupText">Copie ou cole os dados abaixo.</p>
+      <textarea id="backupArea"></textarea>
+      <div class="modalBtns">
+        <button class="secondary" id="closeDialog">Fechar</button>
+        <button class="primary" id="saveImport" hidden>Importar</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    const FIGURINHAS = [
+  {
+    "grupo": "ESP.",
+    "pais": "Especial / História",
+    "codes": [
+      "00",
+      "FWC1",
+      "FWC2",
+      "FWC3",
+      "FWC4",
+      "FWC5",
+      "FWC6",
+      "FWC7",
+      "FWC8",
+      "FWC9",
+      "FWC10",
+      "FWC11",
+      "FWC12",
+      "FWC13",
+      "FWC14",
+      "FWC15",
+      "FWC16",
+      "FWC17",
+      "FWC18",
+      "FWC19"
+    ]
+  },
+  {
+    "grupo": "A",
+    "pais": "México",
+    "codes": [
+      "MEX1",
+      "MEX2",
+      "MEX3",
+      "MEX4",
+      "MEX5",
+      "MEX6",
+      "MEX7",
+      "MEX8",
+      "MEX9",
+      "MEX10",
+      "MEX11",
+      "MEX12",
+      "MEX13",
+      "MEX14",
+      "MEX15",
+      "MEX16",
+      "MEX17",
+      "MEX18",
+      "MEX19",
+      "MEX20"
+    ]
+  },
+  {
+    "grupo": "A",
+    "pais": "África do Sul",
+    "codes": [
+      "RSA1",
+      "RSA2",
+      "RSA3",
+      "RSA4",
+      "RSA5",
+      "RSA6",
+      "RSA7",
+      "RSA8",
+      "RSA9",
+      "RSA10",
+      "RSA11",
+      "RSA12",
+      "RSA13",
+      "RSA14",
+      "RSA15",
+      "RSA16",
+      "RSA17",
+      "RSA18",
+      "RSA19",
+      "RSA20"
+    ]
+  },
+  {
+    "grupo": "A",
+    "pais": "Coreia do Sul",
+    "codes": [
+      "KOR1",
+      "KOR2",
+      "KOR3",
+      "KOR4",
+      "KOR5",
+      "KOR6",
+      "KOR7",
+      "KOR8",
+      "KOR9",
+      "KOR10",
+      "KOR11",
+      "KOR12",
+      "KOR13",
+      "KOR14",
+      "KOR15",
+      "KOR16",
+      "KOR17",
+      "KOR18",
+      "KOR19",
+      "KOR20"
+    ]
+  },
+  {
+    "grupo": "A",
+    "pais": "Rep. Tcheca",
+    "codes": [
+      "CZE1",
+      "CZE2",
+      "CZE3",
+      "CZE4",
+      "CZE5",
+      "CZE6",
+      "CZE7",
+      "CZE8",
+      "CZE9",
+      "CZE10",
+      "CZE11",
+      "CZE12",
+      "CZE13",
+      "CZE14",
+      "CZE15",
+      "CZE16",
+      "CZE17",
+      "CZE18",
+      "CZE19",
+      "CZE20"
+    ]
+  },
+  {
+    "grupo": "B",
+    "pais": "Canadá",
+    "codes": [
+      "CAN1",
+      "CAN2",
+      "CAN3",
+      "CAN4",
+      "CAN5",
+      "CAN6",
+      "CAN7",
+      "CAN8",
+      "CAN9",
+      "CAN10",
+      "CAN11",
+      "CAN12",
+      "CAN13",
+      "CAN14",
+      "CAN15",
+      "CAN16",
+      "CAN17",
+      "CAN18",
+      "CAN19",
+      "CAN20"
+    ]
+  },
+  {
+    "grupo": "B",
+    "pais": "Bósnia",
+    "codes": [
+      "BIH1",
+      "BIH2",
+      "BIH3",
+      "BIH4",
+      "BIH5",
+      "BIH6",
+      "BIH7",
+      "BIH8",
+      "BIH9",
+      "BIH10",
+      "BIH11",
+      "BIH12",
+      "BIH13",
+      "BIH14",
+      "BIH15",
+      "BIH16",
+      "BIH17",
+      "BIH18",
+      "BIH19",
+      "BIH20"
+    ]
+  },
+  {
+    "grupo": "B",
+    "pais": "Catar",
+    "codes": [
+      "QAT1",
+      "QAT2",
+      "QAT3",
+      "QAT4",
+      "QAT5",
+      "QAT6",
+      "QAT7",
+      "QAT8",
+      "QAT9",
+      "QAT10",
+      "QAT11",
+      "QAT12",
+      "QAT13",
+      "QAT14",
+      "QAT15",
+      "QAT16",
+      "QAT17",
+      "QAT18",
+      "QAT19",
+      "QAT20"
+    ]
+  },
+  {
+    "grupo": "B",
+    "pais": "Suíça",
+    "codes": [
+      "SUI1",
+      "SUI2",
+      "SUI3",
+      "SUI4",
+      "SUI5",
+      "SUI6",
+      "SUI7",
+      "SUI8",
+      "SUI9",
+      "SUI10",
+      "SUI11",
+      "SUI12",
+      "SUI13",
+      "SUI14",
+      "SUI15",
+      "SUI16",
+      "SUI17",
+      "SUI18",
+      "SUI19",
+      "SUI20"
+    ]
+  },
+  {
+    "grupo": "C",
+    "pais": "Brasil",
+    "codes": [
+      "BRA1",
+      "BRA2",
+      "BRA3",
+      "BRA4",
+      "BRA5",
+      "BRA6",
+      "BRA7",
+      "BRA8",
+      "BRA9",
+      "BRA10",
+      "BRA11",
+      "BRA12",
+      "BRA13",
+      "BRA14",
+      "BRA15",
+      "BRA16",
+      "BRA17",
+      "BRA18",
+      "BRA19",
+      "BRA20"
+    ]
+  },
+  {
+    "grupo": "C",
+    "pais": "Marrocos",
+    "codes": [
+      "MAR1",
+      "MAR2",
+      "MAR3",
+      "MAR4",
+      "MAR5",
+      "MAR6",
+      "MAR7",
+      "MAR8",
+      "MAR9",
+      "MAR10",
+      "MAR11",
+      "MAR12",
+      "MAR13",
+      "MAR14",
+      "MAR15",
+      "MAR16",
+      "MAR17",
+      "MAR18",
+      "MAR19",
+      "MAR20"
+    ]
+  },
+  {
+    "grupo": "C",
+    "pais": "Haiti",
+    "codes": [
+      "HAI1",
+      "HAI2",
+      "HAI3",
+      "HAI4",
+      "HAI5",
+      "HAI6",
+      "HAI7",
+      "HAI8",
+      "HAI9",
+      "HAI10",
+      "HAI11",
+      "HAI12",
+      "HAI13",
+      "HAI14",
+      "HAI15",
+      "HAI16",
+      "HAI17",
+      "HAI18",
+      "HAI19",
+      "HAI20"
+    ]
+  },
+  {
+    "grupo": "C",
+    "pais": "Escócia",
+    "codes": [
+      "SCO1",
+      "SCO2",
+      "SCO3",
+      "SCO4",
+      "SCO5",
+      "SCO6",
+      "SCO7",
+      "SCO8",
+      "SCO9",
+      "SCO10",
+      "SCO11",
+      "SCO12",
+      "SCO13",
+      "SCO14",
+      "SCO15",
+      "SCO16",
+      "SCO17",
+      "SCO18",
+      "SCO19",
+      "SCO20"
+    ]
+  },
+  {
+    "grupo": "D",
+    "pais": "Estados Unidos",
+    "codes": [
+      "USA1",
+      "USA2",
+      "USA3",
+      "USA4",
+      "USA5",
+      "USA6",
+      "USA7",
+      "USA8",
+      "USA9",
+      "USA10",
+      "USA11",
+      "USA12",
+      "USA13",
+      "USA14",
+      "USA15",
+      "USA16",
+      "USA17",
+      "USA18",
+      "USA19",
+      "USA20"
+    ]
+  },
+  {
+    "grupo": "D",
+    "pais": "Paraguai",
+    "codes": [
+      "PAR1",
+      "PAR2",
+      "PAR3",
+      "PAR4",
+      "PAR5",
+      "PAR6",
+      "PAR7",
+      "PAR8",
+      "PAR9",
+      "PAR10",
+      "PAR11",
+      "PAR12",
+      "PAR13",
+      "PAR14",
+      "PAR15",
+      "PAR16",
+      "PAR17",
+      "PAR18",
+      "PAR19",
+      "PAR20"
+    ]
+  },
+  {
+    "grupo": "D",
+    "pais": "Austrália",
+    "codes": [
+      "AUS1",
+      "AUS2",
+      "AUS3",
+      "AUS4",
+      "AUS5",
+      "AUS6",
+      "AUS7",
+      "AUS8",
+      "AUS9",
+      "AUS10",
+      "AUS11",
+      "AUS12",
+      "AUS13",
+      "AUS14",
+      "AUS15",
+      "AUS16",
+      "AUS17",
+      "AUS18",
+      "AUS19",
+      "AUS20"
+    ]
+  },
+  {
+    "grupo": "D",
+    "pais": "Turquia",
+    "codes": [
+      "TUR1",
+      "TUR2",
+      "TUR3",
+      "TUR4",
+      "TUR5",
+      "TUR6",
+      "TUR7",
+      "TUR8",
+      "TUR9",
+      "TUR10",
+      "TUR11",
+      "TUR12",
+      "TUR13",
+      "TUR14",
+      "TUR15",
+      "TUR16",
+      "TUR17",
+      "TUR18",
+      "TUR19",
+      "TUR20"
+    ]
+  },
+  {
+    "grupo": "E",
+    "pais": "Alemanha",
+    "codes": [
+      "GER1",
+      "GER2",
+      "GER3",
+      "GER4",
+      "GER5",
+      "GER6",
+      "GER7",
+      "GER8",
+      "GER9",
+      "GER10",
+      "GER11",
+      "GER12",
+      "GER13",
+      "GER14",
+      "GER15",
+      "GER16",
+      "GER17",
+      "GER18",
+      "GER19",
+      "GER20"
+    ]
+  },
+  {
+    "grupo": "E",
+    "pais": "Curaçao",
+    "codes": [
+      "CUW1",
+      "CUW2",
+      "CUW3",
+      "CUW4",
+      "CUW5",
+      "CUW6",
+      "CUW7",
+      "CUW8",
+      "CUW9",
+      "CUW10",
+      "CUW11",
+      "CUW12",
+      "CUW13",
+      "CUW14",
+      "CUW15",
+      "CUW16",
+      "CUW17",
+      "CUW18",
+      "CUW19",
+      "CUW20"
+    ]
+  },
+  {
+    "grupo": "E",
+    "pais": "Costa do Marfim",
+    "codes": [
+      "CIV1",
+      "CIV2",
+      "CIV3",
+      "CIV4",
+      "CIV5",
+      "CIV6",
+      "CIV7",
+      "CIV8",
+      "CIV9",
+      "CIV10",
+      "CIV11",
+      "CIV12",
+      "CIV13",
+      "CIV14",
+      "CIV15",
+      "CIV16",
+      "CIV17",
+      "CIV18",
+      "CIV19",
+      "CIV20"
+    ]
+  },
+  {
+    "grupo": "E",
+    "pais": "Equador",
+    "codes": [
+      "ECU1",
+      "ECU2",
+      "ECU3",
+      "ECU4",
+      "ECU5",
+      "ECU6",
+      "ECU7",
+      "ECU8",
+      "ECU9",
+      "ECU10",
+      "ECU11",
+      "ECU12",
+      "ECU13",
+      "ECU14",
+      "ECU15",
+      "ECU16",
+      "ECU17",
+      "ECU18",
+      "ECU19",
+      "ECU20"
+    ]
+  },
+  {
+    "grupo": "F",
+    "pais": "Holanda",
+    "codes": [
+      "NED1",
+      "NED2",
+      "NED3",
+      "NED4",
+      "NED5",
+      "NED6",
+      "NED7",
+      "NED8",
+      "NED9",
+      "NED10",
+      "NED11",
+      "NED12",
+      "NED13",
+      "NED14",
+      "NED15",
+      "NED16",
+      "NED17",
+      "NED18",
+      "NED19",
+      "NED20"
+    ]
+  },
+  {
+    "grupo": "F",
+    "pais": "Japão",
+    "codes": [
+      "JPN1",
+      "JPN2",
+      "JPN3",
+      "JPN4",
+      "JPN5",
+      "JPN6",
+      "JPN7",
+      "JPN8",
+      "JPN9",
+      "JPN10",
+      "JPN11",
+      "JPN12",
+      "JPN13",
+      "JPN14",
+      "JPN15",
+      "JPN16",
+      "JPN17",
+      "JPN18",
+      "JPN19",
+      "JPN20"
+    ]
+  },
+  {
+    "grupo": "F",
+    "pais": "Suécia",
+    "codes": [
+      "SWE1",
+      "SWE2",
+      "SWE3",
+      "SWE4",
+      "SWE5",
+      "SWE6",
+      "SWE7",
+      "SWE8",
+      "SWE9",
+      "SWE10",
+      "SWE11",
+      "SWE12",
+      "SWE13",
+      "SWE14",
+      "SWE15",
+      "SWE16",
+      "SWE17",
+      "SWE18",
+      "SWE19",
+      "SWE20"
+    ]
+  },
+  {
+    "grupo": "F",
+    "pais": "Tunísia",
+    "codes": [
+      "TUN1",
+      "TUN2",
+      "TUN3",
+      "TUN4",
+      "TUN5",
+      "TUN6",
+      "TUN7",
+      "TUN8",
+      "TUN9",
+      "TUN10",
+      "TUN11",
+      "TUN12",
+      "TUN13",
+      "TUN14",
+      "TUN15",
+      "TUN16",
+      "TUN17",
+      "TUN18",
+      "TUN19",
+      "TUN20"
+    ]
+  },
+  {
+    "grupo": "G",
+    "pais": "Bélgica",
+    "codes": [
+      "BEL1",
+      "BEL2",
+      "BEL3",
+      "BEL4",
+      "BEL5",
+      "BEL6",
+      "BEL7",
+      "BEL8",
+      "BEL9",
+      "BEL10",
+      "BEL11",
+      "BEL12",
+      "BEL13",
+      "BEL14",
+      "BEL15",
+      "BEL16",
+      "BEL17",
+      "BEL18",
+      "BEL19",
+      "BEL20"
+    ]
+  },
+  {
+    "grupo": "G",
+    "pais": "Egito",
+    "codes": [
+      "EGY1",
+      "EGY2",
+      "EGY3",
+      "EGY4",
+      "EGY5",
+      "EGY6",
+      "EGY7",
+      "EGY8",
+      "EGY9",
+      "EGY10",
+      "EGY11",
+      "EGY12",
+      "EGY13",
+      "EGY14",
+      "EGY15",
+      "EGY16",
+      "EGY17",
+      "EGY18",
+      "EGY19",
+      "EGY20"
+    ]
+  },
+  {
+    "grupo": "G",
+    "pais": "Irã",
+    "codes": [
+      "IRN1",
+      "IRN2",
+      "IRN3",
+      "IRN4",
+      "IRN5",
+      "IRN6",
+      "IRN7",
+      "IRN8",
+      "IRN9",
+      "IRN10",
+      "IRN11",
+      "IRN12",
+      "IRN13",
+      "IRN14",
+      "IRN15",
+      "IRN16",
+      "IRN17",
+      "IRN18",
+      "IRN19",
+      "IRN20"
+    ]
+  },
+  {
+    "grupo": "G",
+    "pais": "Nova Zelândia",
+    "codes": [
+      "NZL1",
+      "NZL2",
+      "NZL3",
+      "NZL4",
+      "NZL5",
+      "NZL6",
+      "NZL7",
+      "NZL8",
+      "NZL9",
+      "NZL10",
+      "NZL11",
+      "NZL12",
+      "NZL13",
+      "NZL14",
+      "NZL15",
+      "NZL16",
+      "NZL17",
+      "NZL18",
+      "NZL19",
+      "NZL20"
+    ]
+  },
+  {
+    "grupo": "H",
+    "pais": "Espanha",
+    "codes": [
+      "ESP1",
+      "ESP2",
+      "ESP3",
+      "ESP4",
+      "ESP5",
+      "ESP6",
+      "ESP7",
+      "ESP8",
+      "ESP9",
+      "ESP10",
+      "ESP11",
+      "ESP12",
+      "ESP13",
+      "ESP14",
+      "ESP15",
+      "ESP16",
+      "ESP17",
+      "ESP18",
+      "ESP19",
+      "ESP20"
+    ]
+  },
+  {
+    "grupo": "H",
+    "pais": "Cabo Verde",
+    "codes": [
+      "CPV1",
+      "CPV2",
+      "CPV3",
+      "CPV4",
+      "CPV5",
+      "CPV6",
+      "CPV7",
+      "CPV8",
+      "CPV9",
+      "CPV10",
+      "CPV11",
+      "CPV12",
+      "CPV13",
+      "CPV14",
+      "CPV15",
+      "CPV16",
+      "CPV17",
+      "CPV18",
+      "CPV19",
+      "CPV20"
+    ]
+  },
+  {
+    "grupo": "H",
+    "pais": "Arábia Saudita",
+    "codes": [
+      "KSA1",
+      "KSA2",
+      "KSA3",
+      "KSA4",
+      "KSA5",
+      "KSA6",
+      "KSA7",
+      "KSA8",
+      "KSA9",
+      "KSA10",
+      "KSA11",
+      "KSA12",
+      "KSA13",
+      "KSA14",
+      "KSA15",
+      "KSA16",
+      "KSA17",
+      "KSA18",
+      "KSA19",
+      "KSA20"
+    ]
+  },
+  {
+    "grupo": "H",
+    "pais": "Uruguai",
+    "codes": [
+      "URU1",
+      "URU2",
+      "URU3",
+      "URU4",
+      "URU5",
+      "URU6",
+      "URU7",
+      "URU8",
+      "URU9",
+      "URU10",
+      "URU11",
+      "URU12",
+      "URU13",
+      "URU14",
+      "URU15",
+      "URU16",
+      "URU17",
+      "URU18",
+      "URU19",
+      "URU20"
+    ]
+  },
+  {
+    "grupo": "I",
+    "pais": "França",
+    "codes": [
+      "FRA1",
+      "FRA2",
+      "FRA3",
+      "FRA4",
+      "FRA5",
+      "FRA6",
+      "FRA7",
+      "FRA8",
+      "FRA9",
+      "FRA10",
+      "FRA11",
+      "FRA12",
+      "FRA13",
+      "FRA14",
+      "FRA15",
+      "FRA16",
+      "FRA17",
+      "FRA18",
+      "FRA19",
+      "FRA20"
+    ]
+  },
+  {
+    "grupo": "I",
+    "pais": "Senegal",
+    "codes": [
+      "SEN1",
+      "SEN2",
+      "SEN3",
+      "SEN4",
+      "SEN5",
+      "SEN6",
+      "SEN7",
+      "SEN8",
+      "SEN9",
+      "SEN10",
+      "SEN11",
+      "SEN12",
+      "SEN13",
+      "SEN14",
+      "SEN15",
+      "SEN16",
+      "SEN17",
+      "SEN18",
+      "SEN19",
+      "SEN20"
+    ]
+  },
+  {
+    "grupo": "I",
+    "pais": "Iraque",
+    "codes": [
+      "IRQ1",
+      "IRQ2",
+      "IRQ3",
+      "IRQ4",
+      "IRQ5",
+      "IRQ6",
+      "IRQ7",
+      "IRQ8",
+      "IRQ9",
+      "IRQ10",
+      "IRQ11",
+      "IRQ12",
+      "IRQ13",
+      "IRQ14",
+      "IRQ15",
+      "IRQ16",
+      "IRQ17",
+      "IRQ18",
+      "IRQ19",
+      "IRQ20"
+    ]
+  },
+  {
+    "grupo": "I",
+    "pais": "Noruega",
+    "codes": [
+      "NOR1",
+      "NOR2",
+      "NOR3",
+      "NOR4",
+      "NOR5",
+      "NOR6",
+      "NOR7",
+      "NOR8",
+      "NOR9",
+      "NOR10",
+      "NOR11",
+      "NOR12",
+      "NOR13",
+      "NOR14",
+      "NOR15",
+      "NOR16",
+      "NOR17",
+      "NOR18",
+      "NOR19",
+      "NOR20"
+    ]
+  },
+  {
+    "grupo": "J",
+    "pais": "Argentina",
+    "codes": [
+      "ARG1",
+      "ARG2",
+      "ARG3",
+      "ARG4",
+      "ARG5",
+      "ARG6",
+      "ARG7",
+      "ARG8",
+      "ARG9",
+      "ARG10",
+      "ARG11",
+      "ARG12",
+      "ARG13",
+      "ARG14",
+      "ARG15",
+      "ARG16",
+      "ARG17",
+      "ARG18",
+      "ARG19",
+      "ARG20"
+    ]
+  },
+  {
+    "grupo": "J",
+    "pais": "Argélia",
+    "codes": [
+      "ALG1",
+      "ALG2",
+      "ALG3",
+      "ALG4",
+      "ALG5",
+      "ALG6",
+      "ALG7",
+      "ALG8",
+      "ALG9",
+      "ALG10",
+      "ALG11",
+      "ALG12",
+      "ALG13",
+      "ALG14",
+      "ALG15",
+      "ALG16",
+      "ALG17",
+      "ALG18",
+      "ALG19",
+      "ALG20"
+    ]
+  },
+  {
+    "grupo": "J",
+    "pais": "Áustria",
+    "codes": [
+      "AUT1",
+      "AUT2",
+      "AUT3",
+      "AUT4",
+      "AUT5",
+      "AUT6",
+      "AUT7",
+      "AUT8",
+      "AUT9",
+      "AUT10",
+      "AUT11",
+      "AUT12",
+      "AUT13",
+      "AUT14",
+      "AUT15",
+      "AUT16",
+      "AUT17",
+      "AUT18",
+      "AUT19",
+      "AUT20"
+    ]
+  },
+  {
+    "grupo": "J",
+    "pais": "Jordânia",
+    "codes": [
+      "JOR1",
+      "JOR2",
+      "JOR3",
+      "JOR4",
+      "JOR5",
+      "JOR6",
+      "JOR7",
+      "JOR8",
+      "JOR9",
+      "JOR10",
+      "JOR11",
+      "JOR12",
+      "JOR13",
+      "JOR14",
+      "JOR15",
+      "JOR16",
+      "JOR17",
+      "JOR18",
+      "JOR19",
+      "JOR20"
+    ]
+  },
+  {
+    "grupo": "K",
+    "pais": "Portugal",
+    "codes": [
+      "POR1",
+      "POR2",
+      "POR3",
+      "POR4",
+      "POR5",
+      "POR6",
+      "POR7",
+      "POR8",
+      "POR9",
+      "POR10",
+      "POR11",
+      "POR12",
+      "POR13",
+      "POR14",
+      "POR15",
+      "POR16",
+      "POR17",
+      "POR18",
+      "POR19",
+      "POR20"
+    ]
+  },
+  {
+    "grupo": "K",
+    "pais": "Congo",
+    "codes": [
+      "COD1",
+      "COD2",
+      "COD3",
+      "COD4",
+      "COD5",
+      "COD6",
+      "COD7",
+      "COD8",
+      "COD9",
+      "COD10",
+      "COD11",
+      "COD12",
+      "COD13",
+      "COD14",
+      "COD15",
+      "COD16",
+      "COD17",
+      "COD18",
+      "COD19",
+      "COD20"
+    ]
+  },
+  {
+    "grupo": "K",
+    "pais": "Uzbequistão",
+    "codes": [
+      "UZB1",
+      "UZB2",
+      "UZB3",
+      "UZB4",
+      "UZB5",
+      "UZB6",
+      "UZB7",
+      "UZB8",
+      "UZB9",
+      "UZB10",
+      "UZB11",
+      "UZB12",
+      "UZB13",
+      "UZB14",
+      "UZB15",
+      "UZB16",
+      "UZB17",
+      "UZB18",
+      "UZB19",
+      "UZB20"
+    ]
+  },
+  {
+    "grupo": "K",
+    "pais": "Colômbia",
+    "codes": [
+      "COL1",
+      "COL2",
+      "COL3",
+      "COL4",
+      "COL5",
+      "COL6",
+      "COL7",
+      "COL8",
+      "COL9",
+      "COL10",
+      "COL11",
+      "COL12",
+      "COL13",
+      "COL14",
+      "COL15",
+      "COL16",
+      "COL17",
+      "COL18",
+      "COL19",
+      "COL20"
+    ]
+  },
+  {
+    "grupo": "L",
+    "pais": "Inglaterra",
+    "codes": [
+      "ENG1",
+      "ENG2",
+      "ENG3",
+      "ENG4",
+      "ENG5",
+      "ENG6",
+      "ENG7",
+      "ENG8",
+      "ENG9",
+      "ENG10",
+      "ENG11",
+      "ENG12",
+      "ENG13",
+      "ENG14",
+      "ENG15",
+      "ENG16",
+      "ENG17",
+      "ENG18",
+      "ENG19",
+      "ENG20"
+    ]
+  },
+  {
+    "grupo": "L",
+    "pais": "Croácia",
+    "codes": [
+      "CRO1",
+      "CRO2",
+      "CRO3",
+      "CRO4",
+      "CRO5",
+      "CRO6",
+      "CRO7",
+      "CRO8",
+      "CRO9",
+      "CRO10",
+      "CRO11",
+      "CRO12",
+      "CRO13",
+      "CRO14",
+      "CRO15",
+      "CRO16",
+      "CRO17",
+      "CRO18",
+      "CRO19",
+      "CRO20"
+    ]
+  },
+  {
+    "grupo": "L",
+    "pais": "Gana",
+    "codes": [
+      "GHA1",
+      "GHA2",
+      "GHA3",
+      "GHA4",
+      "GHA5",
+      "GHA6",
+      "GHA7",
+      "GHA8",
+      "GHA9",
+      "GHA10",
+      "GHA11",
+      "GHA12",
+      "GHA13",
+      "GHA14",
+      "GHA15",
+      "GHA16",
+      "GHA17",
+      "GHA18",
+      "GHA19",
+      "GHA20"
+    ]
+  },
+  {
+    "grupo": "L",
+    "pais": "Panamá",
+    "codes": [
+      "PAN1",
+      "PAN2",
+      "PAN3",
+      "PAN4",
+      "PAN5",
+      "PAN6",
+      "PAN7",
+      "PAN8",
+      "PAN9",
+      "PAN10",
+      "PAN11",
+      "PAN12",
+      "PAN13",
+      "PAN14",
+      "PAN15",
+      "PAN16",
+      "PAN17",
+      "PAN18",
+      "PAN19",
+      "PAN20"
+    ]
+  },
+  {
+    "grupo": "Extra",
+    "pais": "Coca-Cola",
+    "codes": [
+      "CC1",
+      "CC2",
+      "CC3",
+      "CC4",
+      "CC5",
+      "CC6",
+      "CC7",
+      "CC8",
+      "CC9",
+      "CC10",
+      "CC11",
+      "CC12",
+      "CC13",
+      "CC14"
+    ]
+  }
+];
+
+    const STORAGE_KEY = 'controle-figurinhas-copa-2026-v1';
+    const codes = FIGURINHAS.flatMap(t => t.codes);
+    let owned = new Set(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
+    let deferredPrompt = null;
+
+    const el = id => document.getElementById(id);
+    const app = el('app');
+
+    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify([...owned].sort())); }
+    function updateCounters() {
+      const total = codes.length;
+      const have = owned.size;
+      const missing = total - have;
+      const pct = total ? Math.round((have / total) * 100) : 0;
+      el('total').textContent = total;
+      el('have').textContent = have;
+      el('missing').textContent = missing;
+      el('pct').textContent = pct + '%';
+      el('progress').style.width = pct + '%';
+    }
+    function teamStats(team) {
+      const h = team.codes.filter(c => owned.has(c)).length;
+      return `${h}/${team.codes.length} tenho`;
+    }
+    function render() {
+      updateCounters();
+      const query = el('q').value.trim().toLowerCase();
+      const gf = el('groupFilter').value;
+      const sf = el('statusFilter').value;
+      app.innerHTML = '';
+      let shown = 0;
+      FIGURINHAS.forEach(team => {
+        if (gf && team.grupo !== gf) return;
+        const filteredCodes = team.codes.filter(code => {
+          const have = owned.has(code);
+          if (sf === 'have' && !have) return false;
+          if (sf === 'missing' && have) return false;
+          if (query && !(`${team.pais} ${team.grupo} ${code}`.toLowerCase().includes(query))) return false;
+          return true;
+        });
+        if (!filteredCodes.length) return;
+        shown += filteredCodes.length;
+        const div = document.createElement('div');
+        div.className = 'team';
+        div.innerHTML = `
+          <div class="teamHead">
+            <div class="teamName"><span class="group">${team.grupo}</span>${team.pais}</div>
+            <div class="teamStats">${teamStats(team)}</div>
+          </div>
+          <div class="stickers"></div>`;
+        const grid = div.querySelector('.stickers');
+        filteredCodes.forEach(code => {
+          const btn = document.createElement('button');
+          btn.className = 'sticker ' + (owned.has(code) ? 'have' : 'missing');
+          btn.textContent = code;
+          btn.setAttribute('aria-pressed', owned.has(code) ? 'true' : 'false');
+          btn.onclick = () => {
+            if (owned.has(code)) owned.delete(code); else owned.add(code);
+            save();
+            render();
+          };
+          grid.appendChild(btn);
+        });
+        app.appendChild(div);
+      });
+      if (!shown) app.innerHTML = '<div class="empty">Nenhuma figurinha encontrada com os filtros atuais.</div>';
+    }
+    function setupFilters() {
+      [...new Set(FIGURINHAS.map(t => t.grupo))].forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g; opt.textContent = 'Grupo ' + g;
+        el('groupFilter').appendChild(opt);
+      });
+      ['q','groupFilter','statusFilter'].forEach(id => el(id).addEventListener('input', render));
+    }
+    function openDialog(title, text, content, importing=false) {
+      el('backupTitle').textContent = title;
+      el('backupText').textContent = text;
+      el('backupArea').value = content || '';
+      el('saveImport').hidden = !importing;
+      el('backupDialog').showModal();
+    }
+    el('showMissing').onclick = () => { el('statusFilter').value = el('statusFilter').value === 'missing' ? '' : 'missing'; render(); };
+    el('resetBtn').onclick = () => { if(confirm('Deseja limpar todas as marcações?')) { owned.clear(); save(); render(); } };
+    el('exportBtn').onclick = () => openDialog('Exportar backup', 'Copie este texto para salvar seu progresso.', JSON.stringify({app:'figurinhas-2026', owned:[...owned].sort(), date:new Date().toISOString()}, null, 2));
+    el('importBtn').onclick = () => openDialog('Importar backup', 'Cole aqui o backup exportado anteriormente.', '', true);
+    el('closeDialog').onclick = () => el('backupDialog').close();
+    el('saveImport').onclick = () => {
+      try {
+        const data = JSON.parse(el('backupArea').value);
+        if (!Array.isArray(data.owned)) throw new Error('Formato inválido');
+        owned = new Set(data.owned.filter(c => codes.includes(c)));
+        save(); render(); el('backupDialog').close();
+      } catch(e) { alert('Não consegui importar. Verifique se o texto do backup está correto.'); }
+    };
+
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault(); deferredPrompt = e; el('installBtn').hidden = false;
+    });
+    el('installBtn').onclick = async () => {
+      if (!deferredPrompt) return alert('No Android/Chrome, toque no menu ⋮ e escolha “Adicionar à tela inicial”.');
+      deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; el('installBtn').hidden = true;
+    };
+    
+    setupFilters(); render();
+  </script>
+</body>
+</html>
