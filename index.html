@@ -8,6 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     :root {
       --green:#0f6b3d; --green2:#17a362; --soft:#eaf6ee; --bg:#f4f7f2; --ink:#102018;
@@ -18,7 +19,7 @@
     header { position:sticky; top:0; z-index:10; background:linear-gradient(135deg,var(--green),#083820); color:white; padding:14px 14px 12px; box-shadow:0 4px 18px rgba(0,0,0,.18); }
     .title { display:flex; align-items:center; gap:10px; font-weight:800; font-size:20px; line-height:1.15; }
     .title img { width:38px; height:38px; border-radius:10px; }
-    .kpis { display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin-top:12px; }
+    .kpis { display:grid; grid-template-columns: repeat(5, 1fr); gap:8px; margin-top:12px; }
     .kpi { background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.20); border-radius:14px; padding:9px 6px; text-align:center; }
     .kpi b { display:block; font-size:17px; }
     .kpi span { font-size:11px; opacity:.9; }
@@ -46,6 +47,22 @@
     .footerInner { max-width:980px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
     .primary { border:0; background:var(--green); color:white; border-radius:14px; padding:13px 10px; font-weight:800; }
     .secondary { border:1px solid var(--line); background:#fff; color:var(--green); border-radius:14px; padding:13px 10px; font-weight:800; }
+
+    .tabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:12px 0 8px; }
+    .tabBtn { border:1px solid var(--line); border-radius:14px; background:white; color:var(--green); padding:12px; font-weight:900; box-shadow:0 1px 5px rgba(0,0,0,.08); }
+    .tabBtn.active { background:var(--green); color:white; border-color:var(--green); }
+    .tabNote { background:var(--soft); border:1px solid var(--line); border-radius:12px; padding:10px; color:#315043; font-size:13px; margin:8px 0 10px; }
+    .quickAdd { display:grid; grid-template-columns:1fr 110px 150px; gap:8px; margin:10px 0 12px; }
+    .qtyCard { background:white; border:1px solid var(--line); border-radius:18px; padding:12px; margin:12px 0; box-shadow:0 2px 10px rgba(0,0,0,.04); }
+    .qtyGrid { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:8px; }
+    .qtyItem { border:1px solid var(--line); border-radius:12px; background:#fff; padding:8px; display:grid; grid-template-columns:1fr; gap:7px; }
+    .qtyCode { font-weight:900; color:#1f2937; text-align:center; }
+    .qtyCode.owned { color:var(--green); }
+    .qtyControls { display:grid; grid-template-columns:36px 1fr 36px; gap:6px; align-items:center; }
+    .qtyBtn { border:0; border-radius:10px; min-height:34px; background:var(--green); color:white; font-weight:900; font-size:18px; }
+    .qtyInput { width:100%; border:1px solid var(--line); border-radius:10px; padding:8px 4px; text-align:center; font-weight:900; }
+    .pill { display:inline-flex; align-items:center; justify-content:center; border-radius:999px; padding:3px 8px; font-size:11px; background:var(--soft); color:var(--green); font-weight:800; }
+
     dialog { border:0; border-radius:20px; max-width:560px; width:calc(100% - 24px); padding:0; box-shadow:0 20px 60px rgba(0,0,0,.3); }
     .modal { padding:18px; }
     .modal h2 { margin:0 0 8px; }
@@ -70,6 +87,7 @@
       .authGrid { grid-template-columns:1fr; }
       .userBox { grid-template-columns:1fr; }
       .kpis { grid-template-columns:repeat(2,1fr); }
+      .quickAdd { grid-template-columns:1fr; }
       .title { font-size:18px; }
       .stickers { grid-template-columns:repeat(auto-fill, minmax(62px,1fr)); }
     }
@@ -82,6 +100,7 @@
       <div class="kpi"><b id="total">0</b><span>Total</span></div>
       <div class="kpi"><b id="have">0</b><span>Tenho</span></div>
       <div class="kpi"><b id="missing">0</b><span>Faltam</span></div>
+      <div class="kpi"><b id="repeatedCount">0</b><span>Repetidas</span></div>
       <div class="kpi"><b id="pct">0%</b><span>Progresso</span></div>
     </div>
     <div class="progressWrap"><div class="progress" id="progress"></div></div>
@@ -107,15 +126,27 @@
       <p class="hint">Use uma conta própria da coleção. Quem entrar com o mesmo usuário e senha verá o mesmo progresso e também poderá alterar as marcações.</p>
       <div class="configWarn" id="configWarn" hidden>Para ativar o login, configure o Supabase no arquivo <b>index.html</b>, preenchendo <b>SUPABASE_URL</b> e <b>SUPABASE_ANON_KEY</b>.</div>
     </section>
+
+    <div class="tabs">
+      <button class="tabBtn active" id="tabCollection" type="button">Coleção</button>
+      <button class="tabBtn" id="tabRepeated" type="button">Repetidas</button>
+    </div>
+
     <div class="toolbar">
       <input id="q" class="search" placeholder="Pesquisar país ou código, ex.: Brasil, BRA10...">
       <select id="groupFilter"><option value="">Todos grupos</option></select>
       <select id="statusFilter"><option value="">Todos</option><option value="have">Tenho</option><option value="missing">Faltam</option></select>
     </div>
-    <div class="actions">
+    <div class="actions" id="collectionActions">
       <button class="act" id="showMissing">Ver só faltantes</button>
+      <button class="act" id="exportMissingBtn">Exportar faltantes Excel</button>
       <button class="act" id="exportBtn">Exportar backup</button>
       <button class="act danger" id="resetBtn">Limpar marcações</button>
+    </div>
+    <div class="actions" id="repeatedActions" hidden>
+      <button class="act" id="exportRepeatedBtn">Exportar repetidas Excel</button>
+      <button class="act" id="exportAllBtn">Exportar coleção + repetidas</button>
+      <button class="act danger" id="clearRepeatedBtn">Limpar repetidas</button>
     </div>
     <section id="app"></section>
   </main>
@@ -1443,13 +1474,17 @@
        2) Rode o arquivo supabase_schema.sql no SQL Editor.
        3) Cole abaixo a URL e a chave anon public do seu projeto.
        ========================================================== */
-    const SUPABASE_URL = "https://exhqnfpgsocgxjjyjvjr.supabase.co/rest/v1/";
-    const SUPABASE_ANON_KEY = "sb_publishable_Yir9-HhBv9dxXzGhBpPvgQ_e5tB9xcB";
+    const SUPABASE_URL = "COLE_AQUI_SUA_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = "COLE_AQUI_SUA_SUPABASE_ANON_KEY";
 
     const STORAGE_KEY = 'controle-figurinhas-copa-2026-v1';
+    const STORAGE_REPEATED_KEY = 'controle-figurinhas-copa-2026-repetidas-v1';
     const STORAGE_UPDATED_KEY = 'controle-figurinhas-copa-2026-updated-at';
     const codes = FIGURINHAS.flatMap(t => t.codes);
+    const codeMap = Object.fromEntries(FIGURINHAS.flatMap(t => t.codes.map(c => [c, {grupo:t.grupo, pais:t.pais, codigo:c}])));
     let owned = new Set(loadLocal());
+    let repeated = loadLocalRepeated();
+    let activeTab = 'collection';
     let deferredPrompt = null;
     let currentUser = null;
     let saveTimer = null;
@@ -1460,45 +1495,25 @@
     const app = el('app');
 
     function cleanSupabaseUrl(url) {
-      // O SDK do Supabase precisa da URL base do projeto.
-      // Esta função corrige automaticamente quando alguém cola a URL da Data API com /rest/v1.
-      return String(url || '')
-        .trim()
-        .replace(/\/+$/, '')
-        .replace(/\/rest\/v1$/i, '')
-        .replace(/\/auth\/v1$/i, '');
+      return String(url || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/i, '').replace(/\/auth\/v1$/i, '');
     }
 
     function normalizeLogin(value) {
-      // O Supabase Auth trabalha com e-mail/senha.
-      // Para permitir usuário simples, como "Emma", o app transforma internamente em e-mail técnico.
       const raw = String(value || '').trim().toLowerCase();
       if (raw.includes('@')) return raw;
-      const slug = raw
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9._-]/g, '')
-        .replace(/^[._-]+|[._-]+$/g, '');
-      return `${slug || 'usuario'}@figurinhas.app`;
-    }
-
-    function showLoginLabel() {
-      const raw = String(el('email').value || '').trim();
-      if (!raw) return '-';
-      return raw.includes('@') ? raw : raw;
+      const slug = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9._-]/g, '').replace(/^[._-]+|[._-]+$/g, '');
+      return `${slug || 'usuario'}@controle-figurinhas.local`;
     }
 
     function isSupabaseConfigured() {
-      return SUPABASE_URL && SUPABASE_ANON_KEY &&
-        !SUPABASE_URL.includes('COLE_AQUI') && !SUPABASE_ANON_KEY.includes('COLE_AQUI');
+      return SUPABASE_URL && SUPABASE_ANON_KEY && !SUPABASE_URL.includes('COLE_AQUI') && !SUPABASE_ANON_KEY.includes('COLE_AQUI');
     }
 
     if (isSupabaseConfigured() && window.supabase) {
       const safeUrl = cleanSupabaseUrl(SUPABASE_URL);
       supabaseClient = window.supabase.createClient(safeUrl, String(SUPABASE_ANON_KEY || '').trim());
       cloudReady = true;
-      if (safeUrl !== String(SUPABASE_URL).trim()) {
-        console.warn('SUPABASE_URL corrigida automaticamente. Use apenas a URL base do projeto:', safeUrl);
-      }
+      if (safeUrl !== String(SUPABASE_URL).trim()) console.warn('SUPABASE_URL corrigida automaticamente. Use apenas a URL base do projeto:', safeUrl);
     }
 
     function loadLocal() {
@@ -1508,8 +1523,24 @@
       } catch(e) { return []; }
     }
 
+    function sanitizeRepeated(obj) {
+      const out = {};
+      Object.entries(obj || {}).forEach(([code, qty]) => {
+        const cleanCode = String(code || '').trim().toUpperCase();
+        const n = Math.max(0, Math.floor(Number(qty) || 0));
+        if (codes.includes(cleanCode) && n > 0) out[cleanCode] = n;
+      });
+      return out;
+    }
+
+    function loadLocalRepeated() {
+      try { return sanitizeRepeated(JSON.parse(localStorage.getItem(STORAGE_REPEATED_KEY) || '{}')); }
+      catch(e) { return {}; }
+    }
+
     function saveLocal() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify([...owned].sort()));
+      localStorage.setItem(STORAGE_REPEATED_KEY, JSON.stringify(sanitizeRepeated(repeated)));
       localStorage.setItem(STORAGE_UPDATED_KEY, new Date().toISOString());
     }
 
@@ -1525,7 +1556,7 @@
       el('userBox').hidden = !currentUser;
       if (!cloudReady) setSyncStatus('Login não configurado', 'warn');
       if (currentUser) {
-        const display = (currentUser.email || currentUser.id || '').replace('@figurinhas.app', '');
+        const display = (currentUser.email || currentUser.id || '').replace('@controle-figurinhas.local', '');
         el('currentUser').textContent = display;
       }
     }
@@ -1535,15 +1566,15 @@
       const payload = {
         user_id: currentUser.id,
         owned: [...owned].sort(),
+        repeated: sanitizeRepeated(repeated),
         updated_at: new Date().toISOString()
       };
       setSyncStatus('Salvando...', 'warn');
-      const { error } = await supabaseClient
-        .from('sticker_progress')
-        .upsert(payload, { onConflict: 'user_id' });
+      const { error } = await supabaseClient.from('sticker_progress').upsert(payload, { onConflict: 'user_id' });
       if (error) {
         console.error(error);
         setSyncStatus('Erro ao salvar na nuvem', 'err');
+        if (String(error.message || '').toLowerCase().includes('repeated')) alert('O banco ainda não tem a coluna de repetidas. Rode o SQL atualizado no Supabase.');
         return;
       }
       setSyncStatus('Salvo na nuvem');
@@ -1558,28 +1589,27 @@
     async function loadCloudProgress() {
       if (!cloudReady || !currentUser) return;
       setSyncStatus('Carregando nuvem...', 'warn');
-      const { data, error } = await supabaseClient
-        .from('sticker_progress')
-        .select('owned, updated_at')
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
-
+      const { data, error } = await supabaseClient.from('sticker_progress').select('owned, repeated, updated_at').eq('user_id', currentUser.id).maybeSingle();
       if (error) {
         console.error(error);
         setSyncStatus('Erro ao carregar nuvem', 'err');
+        if (String(error.message || '').toLowerCase().includes('repeated')) alert('Rode o SQL atualizado no Supabase para criar a coluna repeated/repetidas.');
         return;
       }
-
       const localOwned = loadLocal();
-      if (data && Array.isArray(data.owned)) {
-        owned = new Set(data.owned.filter(c => codes.includes(c)));
+      const localRepeated = loadLocalRepeated();
+      if (data) {
+        owned = new Set(Array.isArray(data.owned) ? data.owned.filter(c => codes.includes(c)) : []);
+        repeated = sanitizeRepeated(data.repeated || {});
         saveLocal();
         setSyncStatus('Progresso carregado');
-      } else if (localOwned.length) {
+      } else if (localOwned.length || Object.keys(localRepeated).length) {
         owned = new Set(localOwned.filter(c => codes.includes(c)));
+        repeated = localRepeated;
         await saveCloudNow();
       } else {
         owned = new Set();
+        repeated = {};
         saveLocal();
         await saveCloudNow();
       }
@@ -1641,6 +1671,8 @@
       }
     }
 
+    function repeatedTotal() { return Object.values(sanitizeRepeated(repeated)).reduce((a,b)=>a+b,0); }
+
     function updateCounters() {
       const total = codes.length;
       const have = owned.size;
@@ -1649,56 +1681,125 @@
       el('total').textContent = total;
       el('have').textContent = have;
       el('missing').textContent = missing;
+      el('repeatedCount').textContent = repeatedTotal();
       el('pct').textContent = pct + '%';
       el('progress').style.width = pct + '%';
     }
-    function teamStats(team) {
-      const h = team.codes.filter(c => owned.has(c)).length;
-      return `${h}/${team.codes.length} tenho`;
-    }
-    function render() {
-      updateCounters();
+
+    function teamStats(team) { const h = team.codes.filter(c => owned.has(c)).length; return `${h}/${team.codes.length} tenho`; }
+
+    function getFilteredTeams(forRepeated=false) {
       const query = el('q').value.trim().toLowerCase();
       const gf = el('groupFilter').value;
       const sf = el('statusFilter').value;
-      app.innerHTML = '';
-      let shown = 0;
-      FIGURINHAS.forEach(team => {
-        if (gf && team.grupo !== gf) return;
+      return FIGURINHAS.map(team => {
+        if (gf && team.grupo !== gf) return null;
         const filteredCodes = team.codes.filter(code => {
           const have = owned.has(code);
-          if (sf === 'have' && !have) return false;
-          if (sf === 'missing' && have) return false;
+          const qty = repeated[code] || 0;
+          if (!forRepeated) {
+            if (sf === 'have' && !have) return false;
+            if (sf === 'missing' && have) return false;
+          } else {
+            if (sf === 'have' && qty <= 0) return false;
+            if (sf === 'missing' && qty > 0) return false;
+          }
           if (query && !(`${team.pais} ${team.grupo} ${code}`.toLowerCase().includes(query))) return false;
           return true;
         });
-        if (!filteredCodes.length) return;
+        return filteredCodes.length ? {team, filteredCodes} : null;
+      }).filter(Boolean);
+    }
+
+    function updateTabs() {
+      el('tabCollection').classList.toggle('active', activeTab === 'collection');
+      el('tabRepeated').classList.toggle('active', activeTab === 'repeated');
+      el('collectionActions').hidden = activeTab !== 'collection';
+      el('repeatedActions').hidden = activeTab !== 'repeated';
+    }
+
+    function render() {
+      updateCounters();
+      updateTabs();
+      app.innerHTML = '';
+      if (activeTab === 'repeated') return renderRepeated();
+      return renderCollection();
+    }
+
+    function renderCollection() {
+      let shown = 0;
+      getFilteredTeams(false).forEach(({team, filteredCodes}) => {
         shown += filteredCodes.length;
         const div = document.createElement('div');
         div.className = 'team';
-        div.innerHTML = `
-          <div class="teamHead">
-            <div class="teamName"><span class="group">${team.grupo}</span>${team.pais}</div>
-            <div class="teamStats">${teamStats(team)}</div>
-          </div>
-          <div class="stickers"></div>`;
+        div.innerHTML = `<div class="teamHead"><div class="teamName"><span class="group">${team.grupo}</span>${team.pais}</div><div class="teamStats">${teamStats(team)}</div></div><div class="stickers"></div>`;
         const grid = div.querySelector('.stickers');
         filteredCodes.forEach(code => {
           const btn = document.createElement('button');
           btn.className = 'sticker ' + (owned.has(code) ? 'have' : 'missing');
           btn.textContent = code;
           btn.setAttribute('aria-pressed', owned.has(code) ? 'true' : 'false');
-          btn.onclick = () => {
-            if (owned.has(code)) owned.delete(code); else owned.add(code);
-            save();
-            render();
-          };
+          btn.onclick = () => { if (owned.has(code)) owned.delete(code); else owned.add(code); save(); render(); };
           grid.appendChild(btn);
         });
         app.appendChild(div);
       });
       if (!shown) app.innerHTML = '<div class="empty">Nenhuma figurinha encontrada com os filtros atuais.</div>';
     }
+
+    function setRepeatedQty(code, qty) {
+      const clean = String(code || '').trim().toUpperCase();
+      if (!codes.includes(clean)) return false;
+      const n = Math.max(0, Math.floor(Number(qty) || 0));
+      if (n <= 0) delete repeated[clean]; else repeated[clean] = n;
+      repeated = sanitizeRepeated(repeated);
+      save();
+      return true;
+    }
+
+    function renderRepeated() {
+      const top = document.createElement('div');
+      top.className = 'tabNote';
+      top.innerHTML = '<b>Aba Repetidas:</b> informe a quantidade de cada figurinha repetida. Esses dados também são salvos no celular e sincronizados na nuvem quando você estiver logado.';
+      app.appendChild(top);
+
+      const add = document.createElement('div');
+      add.className = 'quickAdd';
+      add.innerHTML = `<input id="repeatCode" class="search" list="codesList" placeholder="Código da repetida, ex.: BRA10"><input id="repeatQty" class="search" type="number" min="1" step="1" value="1" placeholder="Qtd."><button id="addRepeatBtn" class="primary" type="button">Adicionar</button><datalist id="codesList">${codes.map(c=>`<option value="${c}"></option>`).join('')}</datalist>`;
+      app.appendChild(add);
+      add.querySelector('#addRepeatBtn').onclick = () => {
+        const code = add.querySelector('#repeatCode').value.trim().toUpperCase();
+        const qty = Math.max(1, Math.floor(Number(add.querySelector('#repeatQty').value) || 1));
+        if (!codes.includes(code)) return alert('Código não encontrado na coleção. Exemplo válido: BRA10.');
+        setRepeatedQty(code, (repeated[code] || 0) + qty);
+        render();
+      };
+
+      let shown = 0;
+      getFilteredTeams(true).forEach(({team, filteredCodes}) => {
+        shown += filteredCodes.length;
+        const div = document.createElement('div');
+        div.className = 'qtyCard';
+        const teamQty = team.codes.reduce((sum, c) => sum + (repeated[c] || 0), 0);
+        div.innerHTML = `<div class="teamHead"><div class="teamName"><span class="group">${team.grupo}</span>${team.pais}</div><div class="teamStats">${teamQty} repetidas</div></div><div class="qtyGrid"></div>`;
+        const grid = div.querySelector('.qtyGrid');
+        filteredCodes.forEach(code => {
+          const qty = repeated[code] || 0;
+          const item = document.createElement('div');
+          item.className = 'qtyItem';
+          item.innerHTML = `<div class="qtyCode ${owned.has(code) ? 'owned' : ''}">${code} ${owned.has(code) ? '<span class="pill">tenho</span>' : ''}</div><div class="qtyControls"><button class="qtyBtn" type="button">−</button><input class="qtyInput" type="number" min="0" step="1" value="${qty}"><button class="qtyBtn" type="button">+</button></div>`;
+          const [minus, plus] = item.querySelectorAll('button');
+          const input = item.querySelector('input');
+          minus.onclick = () => { setRepeatedQty(code, (repeated[code] || 0) - 1); render(); };
+          plus.onclick = () => { setRepeatedQty(code, (repeated[code] || 0) + 1); render(); };
+          input.onchange = () => { setRepeatedQty(code, input.value); render(); };
+          grid.appendChild(item);
+        });
+        app.appendChild(div);
+      });
+      if (!shown) app.insertAdjacentHTML('beforeend','<div class="empty">Nenhuma figurinha encontrada com os filtros atuais.</div>');
+    }
+
     function setupFilters() {
       [...new Set(FIGURINHAS.map(t => t.grupo))].forEach(g => {
         const opt = document.createElement('option');
@@ -1707,6 +1808,29 @@
       });
       ['q','groupFilter','statusFilter'].forEach(id => el(id).addEventListener('input', render));
     }
+
+    function rowsMissing() {
+      return codes.filter(c => !owned.has(c)).map(c => ({Grupo: codeMap[c].grupo, Pais: codeMap[c].pais, Codigo: c, Status: 'Faltando'}));
+    }
+
+    function rowsRepeated() {
+      return Object.entries(sanitizeRepeated(repeated)).sort(([a],[b]) => a.localeCompare(b)).map(([c, q]) => ({Grupo: codeMap[c].grupo, Pais: codeMap[c].pais, Codigo: c, Quantidade: q, Tenho_na_colecao: owned.has(c) ? 'Sim' : 'Não'}));
+    }
+
+    function rowsOwned() {
+      return codes.map(c => ({Grupo: codeMap[c].grupo, Pais: codeMap[c].pais, Codigo: c, Status: owned.has(c) ? 'Tenho' : 'Faltando', Repetidas: repeated[c] || 0}));
+    }
+
+    function exportWorkbook(filename, sheets) {
+      if (!window.XLSX) return alert('Não consegui carregar a biblioteca de Excel. Verifique a internet e tente novamente.');
+      const wb = XLSX.utils.book_new();
+      sheets.forEach(({name, rows}) => {
+        const ws = XLSX.utils.json_to_sheet(rows.length ? rows : [{Mensagem:'Nenhum item para exportar'}]);
+        XLSX.utils.book_append_sheet(wb, ws, name.slice(0,31));
+      });
+      XLSX.writeFile(wb, filename);
+    }
+
     function openDialog(title, text, content, importing=false) {
       el('backupTitle').textContent = title;
       el('backupText').textContent = text;
@@ -1714,9 +1838,16 @@
       el('saveImport').hidden = !importing;
       el('backupDialog').showModal();
     }
+
+    el('tabCollection').onclick = () => { activeTab = 'collection'; render(); };
+    el('tabRepeated').onclick = () => { activeTab = 'repeated'; render(); };
     el('showMissing').onclick = () => { el('statusFilter').value = el('statusFilter').value === 'missing' ? '' : 'missing'; render(); };
-    el('resetBtn').onclick = () => { if(confirm('Deseja limpar todas as marcações?')) { owned.clear(); save(); render(); } };
-    el('exportBtn').onclick = () => openDialog('Exportar backup', 'Copie este texto para salvar seu progresso.', JSON.stringify({app:'figurinhas-2026', owned:[...owned].sort(), date:new Date().toISOString()}, null, 2));
+    el('resetBtn').onclick = () => { if(confirm('Deseja limpar todas as marcações da coleção?')) { owned.clear(); save(); render(); } };
+    el('clearRepeatedBtn').onclick = () => { if(confirm('Deseja limpar todas as quantidades de repetidas?')) { repeated = {}; save(); render(); } };
+    el('exportBtn').onclick = () => openDialog('Exportar backup', 'Copie este texto para salvar seu progresso completo.', JSON.stringify({app:'figurinhas-2026', owned:[...owned].sort(), repeated:sanitizeRepeated(repeated), date:new Date().toISOString()}, null, 2));
+    el('exportMissingBtn').onclick = () => exportWorkbook('figurinhas_faltantes_colecao.xlsx', [{name:'Coleção_Faltantes', rows:rowsMissing()}]);
+    el('exportRepeatedBtn').onclick = () => exportWorkbook('figurinhas_repetidas.xlsx', [{name:'Repetidas', rows:rowsRepeated()}]);
+    el('exportAllBtn').onclick = () => exportWorkbook('controle_figurinhas_colecao_repetidas.xlsx', [{name:'Coleção', rows:rowsOwned()}, {name:'Faltantes', rows:rowsMissing()}, {name:'Repetidas', rows:rowsRepeated()}]);
     el('importBtn').onclick = () => openDialog('Importar backup', 'Cole aqui o backup exportado anteriormente.', '', true);
     el('closeDialog').onclick = () => el('backupDialog').close();
     el('saveImport').onclick = () => {
@@ -1724,6 +1855,7 @@
         const data = JSON.parse(el('backupArea').value);
         if (!Array.isArray(data.owned)) throw new Error('Formato inválido');
         owned = new Set(data.owned.filter(c => codes.includes(c)));
+        repeated = sanitizeRepeated(data.repeated || {});
         save(); render(); el('backupDialog').close();
       } catch(e) { alert('Não consegui importar. Verifique se o texto do backup está correto.'); }
     };
@@ -1732,10 +1864,9 @@
     el('signupBtn').onclick = signup;
     el('logoutBtn').onclick = logout;
     el('syncNowBtn').onclick = async () => { await loadCloudProgress(); await saveCloudNow(); };
+    ['email','password'].forEach(id => el(id).addEventListener('keydown', e => { if (e.key === 'Enter') login(); }));
 
-    window.addEventListener('beforeinstallprompt', e => {
-      e.preventDefault(); deferredPrompt = e; el('installBtn').hidden = false;
-    });
+    window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; el('installBtn').hidden = false; });
     el('installBtn').onclick = async () => {
       if (!deferredPrompt) return alert('No Android/Chrome, toque no menu ⋮ e escolha “Adicionar à tela inicial”.');
       deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; el('installBtn').hidden = true;

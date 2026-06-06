@@ -1,53 +1,24 @@
-COMO ATIVAR LOGIN E PROGRESSO COMPARTILHADO
+INSTRUÇÕES SUPABASE - CONTROLE DE FIGURINHAS COPA 2026
 
-O GitHub Pages publica apenas HTML, CSS e JavaScript. Para login e progresso compartilhado entre celulares, você precisa de um banco de dados na nuvem. Esta versão está pronta para usar com Supabase.
+1) Entre no seu projeto Supabase.
+2) Abra SQL Editor > New query.
+3) Cole todo o conteúdo do arquivo supabase_schema.sql.
+4) Clique em Run.
 
-1) Crie uma conta em https://supabase.com
-2) Crie um novo projeto.
-3) No Supabase, entre em SQL Editor > New query.
-4) Cole e execute o conteúdo do arquivo supabase_schema.sql.
-5) Vá em Project Settings > API.
-6) Copie:
-   - Project URL
-   - anon public key
-7) Abra o arquivo index.html.
-8) Procure este trecho:
+IMPORTANTE:
+Esta versão adiciona a coluna "repeated" para salvar as figurinhas repetidas na nuvem.
+Se você já tinha usado a versão anterior, rode o SQL atualizado mesmo assim.
+Ele não apaga seu histórico de coleção; apenas adiciona a coluna nova.
 
-const SUPABASE_URL = "COLE_AQUI_SUA_SUPABASE_URL";
-const SUPABASE_ANON_KEY = "COLE_AQUI_SUA_SUPABASE_ANON_KEY";
+CONFIGURAÇÃO NO APP:
+No arquivo index.html, preencha:
+const SUPABASE_URL = "https://SEU-PROJETO.supabase.co";
+const SUPABASE_ANON_KEY = "SUA_PUBLISHABLE_KEY";
 
-9) Substitua pelos dados do seu projeto Supabase, por exemplo:
+A URL deve ser somente a URL base do projeto, sem /rest/v1 no final.
+Não use Secret Key nem service_role no HTML.
 
-const SUPABASE_URL = "https://xxxxx.supabase.co";
-const SUPABASE_ANON_KEY = "sua-chave-anon-public";
-
-10) Salve o index.html e envie novamente para o GitHub.
-
-COMO USAR
-
-- Abra o app publicado.
-- Clique em Criar usuário.
-- Use um e-mail e senha da coleção, por exemplo: colecaofigurinhas@seudominio.com.
-- Se quiser que outra pessoa veja o mesmo progresso, ela deve entrar com o mesmo usuário e senha.
-- Quem entrar com esse usuário e senha também poderá alterar as figurinhas.
-
-IMPORTANTE SOBRE NÃO PERDER O HISTÓRICO
-
-- O progresso fica salvo na nuvem na tabela sticker_progress.
-- Atualizar os arquivos do GitHub não apaga o progresso.
-- O app também salva uma cópia local no celular como backup.
-- Para maior segurança, use o botão Exportar backup antes de grandes alterações.
-
-DICA DE CONFIGURAÇÃO
-
-Se o Supabase pedir confirmação por e-mail e você não quiser isso:
-Authentication > Providers > Email > desative Confirm email.
-
-
-CORREÇÃO IMPORTANTE DE LOGIN
-- Em SUPABASE_URL, use somente a URL base do projeto, exemplo:
-  https://xxxxxxxxxxxx.supabase.co
-- Não use a URL terminando com /rest/v1 ou /auth/v1.
-- Esta versão também tenta corrigir automaticamente se /rest/v1 for colado por engano.
-- O campo de login aceita um usuário simples, como Emma. Internamente ele vira um e-mail técnico para o Supabase.
-- Depois de publicar no GitHub Pages, abra o app em aba anônima ou limpe o cache se continuar vendo a versão antiga.
+EXPORTAÇÃO EXCEL:
+- Na aba Coleção, use "Exportar faltantes Excel" para baixar as figurinhas que faltam.
+- Na aba Repetidas, use "Exportar repetidas Excel" para baixar a lista de repetidas com quantidade.
+- Use "Exportar coleção + repetidas" para baixar um arquivo com as abas Coleção, Faltantes e Repetidas.
